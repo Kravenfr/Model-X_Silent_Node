@@ -1,0 +1,27 @@
+district_id,district_name,province,population,piped_water_pct,max_tier,max_exceed_prob,max_incidence,h1_cases,h2_cases,h3_cases,h4_cases,h1_tier,h2_tier,h3_tier,h4_tier,early_anomaly_flag,insufficient_data,priority_score,allocation_rank
+LK82,Monaragala,Uva,451000,23.4,Extreme,0.995,32.57,146.9,146.9,146.9,146.9,Extreme,Extreme,Extreme,Extreme,True,False,507.3,1
+LK62,Puttalam,North Western,761000,33.8,Extreme,0.995,29.41,223.8,223.8,223.8,223.8,Extreme,Extreme,Extreme,Extreme,True,False,504.2,2
+LK61,Kurunegala,North Western,1618000,24.1,Extreme,0.995,28.05,453.9,453.9,453.9,453.9,Extreme,Extreme,Extreme,Extreme,True,False,502.8,3
+LK44,Vavuniya,Northern,172000,22.7,Extreme,0.995,26.45,45.5,45.5,45.5,45.5,Extreme,Extreme,Extreme,Extreme,True,False,501.2,4
+LK11,Colombo,Western,2365000,84.4,Extreme,0.995,61.95,1465.0,1465.0,1465.0,1465.0,Extreme,Extreme,Extreme,Extreme,False,False,499.8,5
+LK43,Mannar,Northern,99000,21.3,Extreme,0.995,59.8,59.2,59.2,59.2,59.2,Extreme,Extreme,Extreme,Extreme,False,False,499.8,6
+LK51,Batticaloa,Eastern,526000,31.4,Extreme,0.995,188.04,989.1,989.1,989.1,989.1,Extreme,Extreme,Extreme,Extreme,False,False,499.8,7
+LK52_K,Kalmunai,Eastern,415000,38.2,Extreme,0.995,66.72,276.9,276.9,276.9,276.9,Extreme,Extreme,Extreme,Extreme,False,False,499.8,8
+LK53,Trincomalee,Eastern,379000,32.5,Extreme,0.995,64.88,245.9,245.9,245.9,245.9,Extreme,Extreme,Extreme,Extreme,False,False,499.8,9
+LK92,Kegalle,Sabaragamuwa,840000,31.6,Extreme,0.995,56.08,471.1,471.1,471.1,471.1,Extreme,Extreme,Extreme,Extreme,False,False,499.8,10
+LK12,Gampaha,Western,2304000,58.2,Extreme,0.995,43.41,1000.2,1000.2,1000.2,1000.2,Extreme,Extreme,Extreme,Extreme,False,False,493.2,11
+LK52,Ampara,Eastern,335000,33.1,Extreme,0.995,17.91,60.0,60.0,60.0,60.0,Extreme,Extreme,Extreme,Extreme,True,False,492.7,12
+LK22,Matale,Central,484000,34.2,Extreme,0.995,17.89,86.6,86.6,86.6,86.6,Extreme,Extreme,Extreme,Extreme,True,False,492.6,13
+LK13,Kalutara,Western,1222000,42.1,Extreme,0.995,38.71,473.0,473.0,473.0,473.0,Extreme,Extreme,Extreme,Extreme,False,False,488.5,14
+LK71,Anuradhapura,North Central,860000,26.5,Extreme,0.995,13.55,116.5,116.5,116.5,116.5,Extreme,Extreme,Extreme,Extreme,True,False,488.3,15
+LK41,Jaffna,Northern,583000,14.6,Extreme,0.995,37.89,220.9,220.9,220.9,220.9,Extreme,Extreme,Extreme,Extreme,False,False,487.6,16
+LK31,Galle,Southern,1063000,43.5,Extreme,0.995,12.3,130.7,130.7,130.7,130.7,Extreme,Extreme,Extreme,Extreme,True,False,487.1,17
+LK33,Hambantota,Southern,599000,36.4,Extreme,0.995,35.96,215.4,215.4,215.4,215.4,Extreme,Extreme,Extreme,Extreme,False,False,485.7,18
+LK81,Badulla,Uva,815000,30.2,Extreme,0.995,10.13,82.6,82.6,82.6,82.6,Extreme,Extreme,Extreme,Extreme,True,False,484.9,19
+LK32,Matara,Southern,810000,39.8,Extreme,0.995,34.25,277.4,277.4,277.4,277.4,Extreme,Extreme,Extreme,Extreme,False,False,484.0,20
+LK91,Ratnapura,Sabaragamuwa,1088000,27.8,Extreme,0.995,7.38,80.3,80.3,80.3,80.3,Extreme,Extreme,Extreme,Extreme,True,False,482.1,21
+LK23,Nuwara Eliya,Central,711000,28.6,Extreme,0.995,3.5,24.9,24.9,24.9,24.9,Extreme,Extreme,Extreme,Extreme,True,False,478.2,22
+LK21,Kandy,Central,1375000,45.8,Extreme,0.995,26.81,368.7,368.7,368.7,368.7,Extreme,Extreme,Extreme,Extreme,False,False,476.6,23
+LK42,Kilinochchi,Northern,113000,9.8,Extreme,0.995,25.31,28.6,28.6,28.6,28.6,Extreme,Extreme,Extreme,Extreme,False,False,475.1,24
+LK72,Polonnaruwa,North Central,406000,29.3,Extreme,0.995,23.74,96.4,96.4,96.4,96.4,Extreme,Extreme,Extreme,Extreme,False,False,473.5,25
+LK45,Mullaitivu,Northern,92000,11.2,Extreme,0.995,12.93,11.9,11.9,11.9,11.9,Extreme,Extreme,Extreme,Extreme,False,False,462.7,26

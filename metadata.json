@@ -1,0 +1,6 @@
+{
+  "name": "Silent Node - Sri Lanka Dengue Risk Forecaster",
+  "description": "Weekly-updated 4-week-ahead district dengue risk forecasting and field resource allocation system for Sri Lanka's 26 reporting units.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
