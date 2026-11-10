@@ -1,11 +1,11 @@
 # Akarsh: 4-Week District Dengue Risk Forecaster
 
-[![ModelX 2.0](https://img.shields.io/badge/ModelX%202.0-Phase%202%20Implementation-emerald)](https://github.com/)
-[![Team](https://img.shields.io/badge/Team-Silent%20Node-blue)](https://github.com/)
-[![Category](https://img.shields.io/badge/Category-03%20Health%20and%20Wellbeing-rose)](https://github.com/)
-[![IEEE CIS IIT](https://img.shields.io/badge/Organizer-IEEE%20CIS%20Student%20Chapter%20IIT-cyan)](https://github.com/)
-[![GitHub Pages Ready](https://img.shields.io/badge/Deployment-GitHub%20Pages%20Ready-success)](https://github.com/)
-[![Tests](https://img.shields.io/badge/Tests-13%2F13%20Passing-brightgreen)](https://github.com/)
+[![ModelX 2.0](https://img.shields.io/badge/ModelX%202.0-Phase%202%20Implementation-emerald)](https://github.com/Kravenfr/Model-X_Silent_Node)
+[![Team](https://img.shields.io/badge/Team-Silent%20Node-blue)](https://github.com/Kravenfr/Model-X_Silent_Node)
+[![Category](https://img.shields.io/badge/Category-03%20Health%20and%20Wellbeing-rose)](https://github.com/Kravenfr/Model-X_Silent_Node)
+[![IEEE CIS IIT](https://img.shields.io/badge/Organizer-IEEE%20CIS%20Student%20Chapter%20IIT-cyan)](https://github.com/Kravenfr/Model-X_Silent_Node)
+[![GitHub Pages Ready](https://img.shields.io/badge/Deployment-GitHub%20Pages%20Ready-success)](https://kravenfr.github.io/Model-X_Silent_Node/)
+[![Tests](https://img.shields.io/badge/Tests-13%2F13%20Passing-brightgreen)](https://github.com/Kravenfr/Model-X_Silent_Node)
 
 **Akarsh** is an operational, weekly-updated, 4-week-ahead dengue risk forecasting and field resource-allocation decision-support system covering Sri Lanka's 26 primary reporting units (25 administrative districts plus the Kalmunai health zone).
 
@@ -17,9 +17,9 @@ Built by **Team Silent Node** for the **ModelX 2.0 Competition** (organized by t
 
 ## 🌐 Live GitHub Pages Deployment
 
-Akarsh is configured for automated static deployment via GitHub Actions:
-- **GitHub Pages Workflow**: [`.github/workflows/deploy_gh_pages.yml`](.github/workflows/deploy_gh_pages.yml)
-- **Live Demo URL**: `https://<your-github-username>.github.io/<your-repository-name>/`
+- **Official Live URL**: [**https://kravenfr.github.io/Model-X_Silent_Node/**](https://kravenfr.github.io/Model-X_Silent_Node/)
+- **GitHub Repository**: [https://github.com/Kravenfr/Model-X_Silent_Node](https://github.com/Kravenfr/Model-X_Silent_Node)
+- **Deployment Workflow**: [`.github/workflows/deploy_gh_pages.yml`](.github/workflows/deploy_gh_pages.yml)
 
 ### How to Enable GitHub Pages on Your Fork / Repository:
 1. Push this repository to your GitHub account.

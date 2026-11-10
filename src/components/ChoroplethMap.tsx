@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useState } from 'react';
+import { Layers, Network, MapPin, Eye } from 'lucide-react';
 
 export interface DistrictGeoNode {
   id: string;
@@ -11,8 +12,8 @@ export interface DistrictGeoNode {
   shapeType?: 'rect' | 'circle';
 }
 
-// Geographically calibrated layout representation of Sri Lanka's 26 reporting units
-// within a coordinate space (x: 0..460, y: 0..640)
+// Geographically calibrated coordinates for Sri Lanka's 26 reporting units
+// (x: 0..460, y: 0..640)
 export const SRI_LANKA_DISTRICT_COORDS: Record<string, { x: number; y: number; r: number; province: string }> = {
   // Northern Province
   'Jaffna': { x: 165, y: 55, r: 26, province: 'Northern' },
@@ -29,7 +30,7 @@ export const SRI_LANKA_DISTRICT_COORDS: Record<string, { x: number; y: number; r
   'Trincomalee': { x: 290, y: 200, r: 28, province: 'Eastern' },
   'Batticaloa': { x: 335, y: 310, r: 26, province: 'Eastern' },
   'Ampara': { x: 315, y: 385, r: 34, province: 'Eastern' },
-  'Kalmunai': { x: 365, y: 360, r: 22, province: 'Eastern' }, // Coastal RDHS zone
+  'Kalmunai': { x: 365, y: 360, r: 22, province: 'Eastern' }, // Coastal RDHS health zone
 
   // North Western Province
   'Puttalam': { x: 115, y: 255, r: 32, province: 'North Western' },
@@ -59,6 +60,80 @@ export const SRI_LANKA_DISTRICT_COORDS: Record<string, { x: number; y: number; r
   'Hambantota': { x: 270, y: 555, r: 32, province: 'Southern' },
 };
 
+// Neighbor adjacency pairs for Queen-contiguity spatial transmission network
+export const ADJACENCY_PAIRS: [string, string][] = [
+  ['Jaffna', 'Kilinochchi'],
+  ['Kilinochchi', 'Mannar'],
+  ['Kilinochchi', 'Mullaitivu'],
+  ['Mannar', 'Vavuniya'],
+  ['Mannar', 'Anuradhapura'],
+  ['Mannar', 'Puttalam'],
+  ['Mullaitivu', 'Vavuniya'],
+  ['Mullaitivu', 'Trincomalee'],
+  ['Vavuniya', 'Anuradhapura'],
+  ['Anuradhapura', 'Trincomalee'],
+  ['Anuradhapura', 'Polonnaruwa'],
+  ['Anuradhapura', 'Matale'],
+  ['Anuradhapura', 'Kurunegala'],
+  ['Anuradhapura', 'Puttalam'],
+  ['Trincomalee', 'Polonnaruwa'],
+  ['Trincomalee', 'Batticaloa'],
+  ['Polonnaruwa', 'Batticaloa'],
+  ['Polonnaruwa', 'Ampara'],
+  ['Polonnaruwa', 'Matale'],
+  ['Polonnaruwa', 'Badulla'],
+  ['Batticaloa', 'Kalmunai'],
+  ['Batticaloa', 'Ampara'],
+  ['Kalmunai', 'Ampara'],
+  ['Kalmunai', 'Monaragala'],
+  ['Ampara', 'Monaragala'],
+  ['Ampara', 'Badulla'],
+  ['Ampara', 'Kandy'],
+  ['Puttalam', 'Kurunegala'],
+  ['Puttalam', 'Gampaha'],
+  ['Kurunegala', 'Matale'],
+  ['Kurunegala', 'Kandy'],
+  ['Kurunegala', 'Kegalle'],
+  ['Kurunegala', 'Gampaha'],
+  ['Matale', 'Kandy'],
+  ['Matale', 'Badulla'],
+  ['Kandy', 'Nuwara Eliya'],
+  ['Kandy', 'Badulla'],
+  ['Kandy', 'Kegalle'],
+  ['Nuwara Eliya', 'Badulla'],
+  ['Nuwara Eliya', 'Ratnapura'],
+  ['Nuwara Eliya', 'Kegalle'],
+  ['Kegalle', 'Ratnapura'],
+  ['Kegalle', 'Colombo'],
+  ['Kegalle', 'Gampaha'],
+  ['Gampaha', 'Colombo'],
+  ['Colombo', 'Kalutara'],
+  ['Kalutara', 'Ratnapura'],
+  ['Kalutara', 'Galle'],
+  ['Ratnapura', 'Badulla'],
+  ['Ratnapura', 'Monaragala'],
+  ['Ratnapura', 'Hambantota'],
+  ['Ratnapura', 'Matara'],
+  ['Ratnapura', 'Galle'],
+  ['Badulla', 'Monaragala'],
+  ['Monaragala', 'Hambantota'],
+  ['Galle', 'Matara'],
+  ['Matara', 'Hambantota'],
+];
+
+const PROVINCES = [
+  'ALL',
+  'Western',
+  'Central',
+  'Southern',
+  'Northern',
+  'Eastern',
+  'North Western',
+  'North Central',
+  'Uva',
+  'Sabaragamuwa',
+];
+
 interface ChoroplethMapProps {
   districtTiers: Record<string, { tier: string; cases: number; incidence: number; exceedProb: number; isAnomaly?: boolean }>;
   selectedDistrict: string;
@@ -72,10 +147,14 @@ export const ChoroplethMap: React.FC<ChoroplethMapProps> = ({
   onSelectDistrict,
   selectedHorizon,
 }) => {
+  const [selectedProvince, setSelectedProvince] = useState<string>('ALL');
+  const [showNetwork, setShowNetwork] = useState<boolean>(true);
+  const [hoveredDistrict, setHoveredDistrict] = useState<string | null>(null);
+
   const getTierFill = (tier: string) => {
     switch (tier) {
       case 'Extreme':
-        return '#dc2626'; // Deep crimson
+        return '#dc2626'; // Deep crimson red
       case 'High':
         return '#ea580c'; // Vibrant orange
       case 'Moderate':
@@ -107,49 +186,57 @@ export const ChoroplethMap: React.FC<ChoroplethMapProps> = ({
   };
 
   return (
-    <div className="relative w-full h-[580px] bg-slate-900/80 rounded-2xl border border-slate-800 p-4 flex flex-col shadow-inner overflow-hidden">
-      {/* Map Header with Legend */}
-      <div className="flex items-center justify-between mb-2 z-10">
-        <div>
-          <h3 className="text-sm font-semibold text-white tracking-wide flex items-center gap-2">
-            <span>Sri Lanka 26 Units Risk Map</span>
-            <span className="px-2 py-0.5 rounded-full text-xs bg-slate-800 text-sky-400 font-mono">
-              Horizon +{selectedHorizon}W
-            </span>
-          </h3>
-          <p className="text-xs text-slate-400">Click a district to inspect details & fan chart</p>
+    <div className="relative w-full h-[620px] bg-slate-900/90 rounded-2xl border border-slate-800 p-4 flex flex-col shadow-2xl overflow-hidden">
+      {/* Map Header with Controls */}
+      <div className="flex flex-col gap-2 mb-2 z-10">
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="text-sm font-bold text-white tracking-wide flex items-center gap-2">
+              <span>Sri Lanka 26 Units Risk Map</span>
+              <span className="px-2 py-0.5 rounded-full text-xs bg-sky-950 text-sky-400 border border-sky-800 font-mono font-bold">
+                +{selectedHorizon}W Projection
+              </span>
+            </h3>
+            <p className="text-[11px] text-slate-400">Click a node to inspect fan chart & field staging needs</p>
+          </div>
+
+          {/* Adjacency Network Toggle */}
+          <button
+            onClick={() => setShowNetwork(!showNetwork)}
+            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-medium border transition-colors ${
+              showNetwork
+                ? 'bg-sky-500/20 text-sky-300 border-sky-400/40'
+                : 'bg-slate-950 text-slate-400 border-slate-800 hover:text-white'
+            }`}
+          >
+            <Network className="w-3 h-3" />
+            <span>{showNetwork ? 'Hide Network' : 'Queen Network'}</span>
+          </button>
         </div>
 
-        {/* Mini Legend */}
-        <div className="flex items-center gap-2 text-xs">
-          <div className="flex items-center gap-1">
-            <span className="w-2.5 h-2.5 rounded-full bg-rose-600"></span>
-            <span className="text-slate-300">Ext</span>
-          </div>
-          <div className="flex items-center gap-1">
-            <span className="w-2.5 h-2.5 rounded-full bg-orange-500"></span>
-            <span className="text-slate-300">High</span>
-          </div>
-          <div className="flex items-center gap-1">
-            <span className="w-2.5 h-2.5 rounded-full bg-amber-500"></span>
-            <span className="text-slate-300">Mod</span>
-          </div>
-          <div className="flex items-center gap-1">
-            <span className="w-2.5 h-2.5 rounded-full bg-sky-500"></span>
-            <span className="text-slate-300">Low</span>
-          </div>
-          <div className="flex items-center gap-1">
-            <span className="w-2.5 h-2.5 rounded bg-slate-600 border border-dashed border-slate-400"></span>
-            <span className="text-slate-300">No Data</span>
-          </div>
+        {/* Province Quick Filter Pills */}
+        <div className="flex items-center gap-1 overflow-x-auto pb-1 scrollbar-thin">
+          {PROVINCES.map((prov) => (
+            <button
+              key={prov}
+              onClick={() => setSelectedProvince(prov)}
+              className={`px-2 py-0.5 rounded-md text-[10px] whitespace-nowrap font-medium transition-all ${
+                selectedProvince === prov
+                  ? 'bg-sky-600 text-white shadow-sm'
+                  : 'bg-slate-950 text-slate-400 hover:text-slate-200 border border-slate-800'
+              }`}
+            >
+              {prov === 'ALL' ? 'All Units (26)' : prov}
+            </button>
+          ))}
         </div>
       </div>
 
-      {/* SVG Canvas */}
+      {/* SVG Map Canvas */}
       <div className="relative flex-1 flex items-center justify-center">
         <svg
           viewBox="0 0 440 620"
-          className="w-full h-full max-h-[500px] drop-shadow-2xl select-none"
+          className="w-full h-full max-h-[480px] drop-shadow-2xl select-none"
         >
           <defs>
             {/* SVG Hatched pattern for Insufficient Data */}
@@ -161,30 +248,47 @@ export const ChoroplethMap: React.FC<ChoroplethMapProps> = ({
               patternUnits="userSpaceOnUse"
             >
               <line x1="0" y1="0" x2="0" y2="8" stroke="#94a3b8" strokeWidth="2.5" />
-              <rect width="8" height="8" fill="#334155" opacity="0.6" />
+              <rect width="8" height="8" fill="#334155" opacity="0.65" />
             </pattern>
 
             {/* Pulsating glow filter for early anomalies */}
-            <filter id="glow-anomaly" x="-20%" y="-20%" width="140%" height="140%">
-              <feGaussianBlur stdDeviation="3" result="blur" />
+            <filter id="glow-anomaly" x="-25%" y="-25%" width="150%" height="150%">
+              <feGaussianBlur stdDeviation="3.5" result="blur" />
               <feComposite in="SourceGraphic" in2="blur" operator="over" />
             </filter>
           </defs>
 
-          {/* Island outline hint background */}
-          <ellipse cx="225" cy="360" rx="140" ry="210" fill="#0f172a" opacity="0.4" />
+          {/* Island Landmass Contour Backdrop */}
+          <ellipse cx="225" cy="360" rx="145" ry="215" fill="#0b1329" opacity="0.5" />
 
-          {/* District Contiguity / Connection Lines */}
-          <g stroke="#334155" strokeWidth="1" strokeDasharray="3 3" opacity="0.5">
-            {/* Jaffna - Kilinochchi */}
-            <line x1="165" y1="55" x2="195" y2="110" />
-            {/* Western corridor: Colombo - Gampaha - Kalutara */}
-            <line x1="115" y1="420" x2="125" y2="370" />
-            <line x1="115" y1="420" x2="130" y2="470" />
-            {/* Eastern corridor: Batticaloa - Kalmunai - Ampara */}
-            <line x1="335" y1="310" x2="365" y2="360" />
-            <line x1="365" y1="360" x2="315" y2="385" />
-          </g>
+          {/* Queen-Contiguity Spatial Transmission Adjacency Network */}
+          {showNetwork && (
+            <g stroke="#38bdf8" strokeWidth="1.2" strokeDasharray="3 3" opacity="0.25">
+              {ADJACENCY_PAIRS.map(([d1, d2], idx) => {
+                const c1 = SRI_LANKA_DISTRICT_COORDS[d1];
+                const c2 = SRI_LANKA_DISTRICT_COORDS[d2];
+                if (!c1 || !c2) return null;
+                const isFocal =
+                  selectedDistrict === d1 ||
+                  selectedDistrict === d2 ||
+                  hoveredDistrict === d1 ||
+                  hoveredDistrict === d2;
+                return (
+                  <line
+                    key={idx}
+                    x1={c1.x}
+                    y1={c1.y}
+                    x2={c2.x}
+                    y2={c2.y}
+                    stroke={isFocal ? '#38bdf8' : '#334155'}
+                    strokeWidth={isFocal ? 2 : 1}
+                    opacity={isFocal ? 0.8 : 0.25}
+                    strokeDasharray={isFocal ? 'none' : '3 3'}
+                  />
+                );
+              })}
+            </g>
+          )}
 
           {/* District Interactive Nodes */}
           {Object.entries(SRI_LANKA_DISTRICT_COORDS).map(([name, coords]) => {
@@ -196,47 +300,54 @@ export const ChoroplethMap: React.FC<ChoroplethMapProps> = ({
               isAnomaly: false,
             };
             const isSelected = selectedDistrict === name;
+            const isHovered = hoveredDistrict === name;
+            const isProvinceMatch = selectedProvince === 'ALL' || coords.province === selectedProvince;
             const isKalmunai = name === 'Kalmunai';
+
             const fill = getTierFill(data.tier);
             const stroke = isSelected ? '#ffffff' : getTierBorder(data.tier);
-            const strokeWidth = isSelected ? 3.5 : 1.5;
+            const strokeWidth = isSelected ? 3.5 : isHovered ? 2.5 : 1.5;
+            const opacity = isProvinceMatch ? 1.0 : 0.25;
 
             return (
               <g
                 key={name}
                 onClick={() => onSelectDistrict(name)}
-                className="cursor-pointer group transition-transform duration-200"
+                onMouseEnter={() => setHoveredDistrict(name)}
+                onMouseLeave={() => setHoveredDistrict(null)}
+                className="cursor-pointer group transition-all duration-200"
+                style={{ opacity }}
               >
-                {/* Highlight ring for selected district */}
+                {/* Highlight animated pulse for selected unit */}
                 {isSelected && (
                   <circle
                     cx={coords.x}
                     cy={coords.y}
-                    r={coords.r + 5}
+                    r={coords.r + 6}
                     fill="none"
-                    stroke="#ffffff"
+                    stroke="#38bdf8"
                     strokeWidth="2"
                     strokeDasharray="4 2"
                     className="animate-spin"
-                    style={{ transformOrigin: `${coords.x}px ${coords.y}px`, animationDuration: '8s' }}
+                    style={{ transformOrigin: `${coords.x}px ${coords.y}px`, animationDuration: '9s' }}
                   />
                 )}
 
-                {/* Early Anomaly Pulsing Alert Marker */}
+                {/* Early Anomaly Ping Warning */}
                 {data.isAnomaly && (
                   <circle
                     cx={coords.x}
                     cy={coords.y}
-                    r={coords.r + 3}
+                    r={coords.r + 4}
                     fill="none"
                     stroke="#fbbf24"
-                    strokeWidth="2"
+                    strokeWidth="2.5"
                     className="animate-ping"
-                    opacity="0.8"
+                    opacity="0.85"
                   />
                 )}
 
-                {/* District Shape (circle/bubble representation matching density) */}
+                {/* Main District Bubble */}
                 <circle
                   cx={coords.x}
                   cy={coords.y}
@@ -244,12 +355,12 @@ export const ChoroplethMap: React.FC<ChoroplethMapProps> = ({
                   fill={fill}
                   stroke={stroke}
                   strokeWidth={strokeWidth}
-                  className={`transition-all duration-200 group-hover:brightness-125 ${
-                    isSelected ? 'filter drop-shadow-[0_0_8px_rgba(255,255,255,0.4)]' : ''
+                  className={`transition-all duration-200 group-hover:scale-105 ${
+                    isSelected ? 'filter drop-shadow-[0_0_12px_rgba(56,189,248,0.6)]' : ''
                   }`}
                 />
 
-                {/* Special outline for Kalmunai health zone */}
+                {/* Special dashed border for Kalmunai RDHS health zone */}
                 {isKalmunai && (
                   <circle
                     cx={coords.x}
@@ -257,8 +368,8 @@ export const ChoroplethMap: React.FC<ChoroplethMapProps> = ({
                     r={coords.r - 3}
                     fill="none"
                     stroke="#ffffff"
-                    strokeWidth="1.2"
-                    strokeDasharray="2 2"
+                    strokeWidth="1.5"
+                    strokeDasharray="3 2"
                   />
                 )}
 
@@ -267,36 +378,36 @@ export const ChoroplethMap: React.FC<ChoroplethMapProps> = ({
                   x={coords.x}
                   y={coords.y - 2}
                   textAnchor="middle"
-                  fontSize={coords.r > 28 ? 10 : 8.5}
-                  fontWeight="600"
+                  fontSize={coords.r > 28 ? 10.5 : 9}
+                  fontWeight="700"
                   fill="#ffffff"
                   pointerEvents="none"
-                  className="drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]"
+                  className="drop-shadow-[0_1px_3px_rgba(0,0,0,0.9)]"
                 >
                   {name === 'Nuwara Eliya' ? 'N. Eliya' : name === 'Anuradhapura' ? 'Anuradh.' : name}
                 </text>
 
-                {/* Subtitle Value Label (Median Cases or Insufficient) */}
+                {/* Case count or Insufficient label */}
                 <text
                   x={coords.x}
-                  y={coords.y + 10}
+                  y={coords.y + 11}
                   textAnchor="middle"
-                  fontSize="7.5"
+                  fontSize="8"
                   fill={data.tier === 'Insufficient Data' ? '#cbd5e1' : '#ffffff'}
-                  fontWeight="500"
+                  fontWeight="600"
                   pointerEvents="none"
                   opacity="0.95"
                 >
-                  {data.tier === 'Insufficient Data' ? 'NO DATA' : `${Math.round(data.cases)}c`}
+                  {data.tier === 'Insufficient Data' ? 'NO DATA' : `${Math.round(data.cases)} cases`}
                 </text>
               </g>
             );
           })}
         </svg>
 
-        {/* Map Floating Info Badge for Selected District */}
+        {/* Selected District Quick Summary Bar */}
         {selectedDistrict && districtTiers[selectedDistrict] && (
-          <div className="absolute bottom-2 left-2 right-2 bg-slate-950/90 backdrop-blur border border-slate-700/80 rounded-xl p-2.5 flex items-center justify-between text-xs shadow-xl">
+          <div className="absolute bottom-1 left-2 right-2 bg-slate-950/95 backdrop-blur-md border border-slate-700/80 rounded-xl p-2.5 flex items-center justify-between text-xs shadow-2xl">
             <div className="flex items-center gap-2">
               <span
                 className="w-3.5 h-3.5 rounded-full flex-shrink-0"
@@ -337,6 +448,36 @@ export const ChoroplethMap: React.FC<ChoroplethMapProps> = ({
             </div>
           </div>
         )}
+      </div>
+
+      {/* Mini Color Legend Footer */}
+      <div className="pt-2 border-t border-slate-800/80 flex flex-wrap items-center justify-between text-[11px] text-slate-400">
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-1">
+            <span className="w-2.5 h-2.5 rounded-full bg-rose-600"></span>
+            <span>Extreme (&ge;80% exc.)</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <span className="w-2.5 h-2.5 rounded-full bg-orange-500"></span>
+            <span>High (50-80%)</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <span className="w-2.5 h-2.5 rounded-full bg-amber-500"></span>
+            <span>Mod (15-50%)</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <span className="w-2.5 h-2.5 rounded-full bg-sky-500"></span>
+            <span>Low (&lt;15%)</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <span className="w-2.5 h-2.5 rounded bg-slate-600 border border-dashed border-slate-400"></span>
+            <span>Insufficient Data</span>
+          </div>
+        </div>
+
+        <span className="text-[10px] text-slate-500 italic">
+          Kalmunai health zone rendered with dashed border
+        </span>
       </div>
     </div>
   );

@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useState } from 'react';
+import { ShieldAlert, Droplets, Users, Flame, AlertCircle, CheckCircle, Calculator } from 'lucide-react';
 
 export interface ForecastPoint {
   horizon: number;
@@ -33,6 +34,8 @@ export const FanChart: React.FC<FanChartProps> = ({
   recentHistory = [],
   cutoffWeekStr,
 }) => {
+  const [activeTab, setActiveTab] = useState<'fanchart' | 'staging'>('fanchart');
+
   if (!forecasts || forecasts.length === 0) {
     return (
       <div className="h-64 flex items-center justify-center bg-slate-900/50 rounded-xl border border-slate-800 text-slate-400">
@@ -42,7 +45,6 @@ export const FanChart: React.FC<FanChartProps> = ({
   }
 
   // Calculate scales for SVG coordinates
-  // SVG viewBox: 0 0 600 240
   const width = 600;
   const height = 240;
   const padding = { top: 20, right: 40, bottom: 40, left: 55 };
@@ -62,8 +64,6 @@ export const FanChart: React.FC<FanChartProps> = ({
     return padding.top + plotH - (clamped / yMax) * plotH;
   };
 
-  // Combine recent history points (4 weeks prior) + 4 forecast horizons
-  // Total steps = history (say 4) + 4 = 8 steps
   const histPoints = recentHistory.slice(-4);
   const totalSteps = histPoints.length + forecasts.length;
 
@@ -71,9 +71,6 @@ export const FanChart: React.FC<FanChartProps> = ({
     return padding.left + (stepIndex / (totalSteps - 1 || 1)) * plotW;
   };
 
-  // X coords:
-  // History steps: 0 .. histPoints.length - 1
-  // Forecast steps: histPoints.length .. totalSteps - 1
   const histCoords = histPoints.map((h, i) => ({
     x: getStepX(i),
     y: scaleY(h.cases),
@@ -82,7 +79,10 @@ export const FanChart: React.FC<FanChartProps> = ({
   }));
 
   const originX = histPoints.length > 0 ? getStepX(histPoints.length - 1) : padding.left;
-  const originY = histPoints.length > 0 ? scaleY(histPoints[histPoints.length - 1].cases) : scaleY(forecasts[0].pred_median);
+  const originY =
+    histPoints.length > 0
+      ? scaleY(histPoints[histPoints.length - 1].cases)
+      : scaleY(forecasts[0].pred_median);
 
   const forecastCoords = forecasts.map((f, i) => {
     const stepIdx = histPoints.length + i;
@@ -98,7 +98,7 @@ export const FanChart: React.FC<FanChartProps> = ({
     };
   });
 
-  // Construct SVG polygon path for 95% prediction interval band
+  // SVG polygon paths
   const band95Path = [
     `M ${originX} ${originY}`,
     ...forecastCoords.map((c) => `L ${c.x} ${c.yQ975}`),
@@ -106,7 +106,6 @@ export const FanChart: React.FC<FanChartProps> = ({
     `Z`,
   ].join(' ');
 
-  // Construct SVG polygon path for 50% prediction interval band (IQR)
   const band50Path = [
     `M ${originX} ${originY}`,
     ...forecastCoords.map((c) => `L ${c.x} ${c.yQ75}`),
@@ -114,248 +113,352 @@ export const FanChart: React.FC<FanChartProps> = ({
     `Z`,
   ].join(' ');
 
-  // Trajectory line for median
   const medianLinePath = [
     `M ${originX} ${originY}`,
     ...forecastCoords.map((c) => `L ${c.x} ${c.yMedian}`),
   ].join(' ');
 
-  // Historical trajectory line
   const histLinePath = histCoords.map((c, i) => `${i === 0 ? 'M' : 'L'} ${c.x} ${c.y}`).join(' ');
-
   const thresholdY = scaleY(thresholdVal);
+
+  // Field Team Resource Calculations
+  const peakForecast = forecasts.reduce((prev, curr) => (curr.pred_median > prev.pred_median ? curr : prev), forecasts[0]);
+  const projectedCaseload4W = Math.round(forecasts.reduce((sum, f) => sum + f.pred_median, 0));
+  const btiLiters = Math.max(20, Math.round(projectedCaseload4W * 12.5));
+  const foggingCrews = Math.max(1, Math.round(peakForecast.pred_median / 25));
+  const phiPersonnel = Math.max(4, Math.round(peakForecast.pred_median / 12));
+  const maxExceed = Math.max(...forecasts.map((f) => f.exceed_prob));
 
   return (
     <div className="w-full bg-slate-900/90 rounded-2xl border border-slate-800 p-4 shadow-xl">
-      <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
+      {/* Deep Dive Header */}
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-3 border-b border-slate-800 pb-3">
         <div>
           <h4 className="text-base font-bold text-white flex items-center gap-2">
-            <span>{districtName} 4-Week Predictive Fan Chart</span>
-            <span className="text-xs px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 font-mono">
+            <span>{districtName} 4-Week Predictive Trajectory</span>
+            <span className="text-xs px-2.5 py-0.5 rounded-full bg-slate-800 text-sky-400 font-mono font-bold">
               Cutoff: {cutoffWeekStr}
             </span>
+            {forecasts.some((f) => f.early_anomaly) && (
+              <span className="text-xs px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 font-bold flex items-center gap-1">
+                <AlertCircle className="w-3 h-3 text-amber-400" />
+                <span>Early Anomaly Alert</span>
+              </span>
+            )}
           </h4>
           <p className="text-xs text-slate-400">
-            Solid line = Predicted Median; Inner band = 50% IQR; Outer band = 95% Confidence Interval
+            Ensemble predictive quantiles ($q_{'{0.025}'} \dots q_{'{0.975}'}$) & Field Team Deployment Protocol
           </p>
         </div>
 
-        {/* Legend */}
-        <div className="flex items-center gap-3 text-xs">
-          <div className="flex items-center gap-1.5">
-            <span className="w-3 h-2 rounded bg-sky-500/25 border border-sky-400/40"></span>
-            <span className="text-slate-300">95% CI</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <span className="w-3 h-2 rounded bg-sky-500/50 border border-sky-400"></span>
-            <span className="text-slate-300">50% IQR</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <span className="w-3 h-0.5 bg-rose-500 stroke-dashed border-b border-rose-500"></span>
-            <span className="text-rose-300">95th %ile Threshold</span>
-          </div>
+        {/* View Switcher: Fan Chart vs Field Staging */}
+        <div className="flex items-center gap-1.5 bg-slate-950 p-1 rounded-xl border border-slate-800">
+          <button
+            onClick={() => setActiveTab('fanchart')}
+            className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all ${
+              activeTab === 'fanchart'
+                ? 'bg-sky-600 text-white shadow-sm'
+                : 'text-slate-400 hover:text-white'
+            }`}
+          >
+            Predictive Fan Chart
+          </button>
+          <button
+            onClick={() => setActiveTab('staging')}
+            className={`px-3 py-1 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all ${
+              activeTab === 'staging'
+                ? 'bg-sky-600 text-white shadow-sm'
+                : 'text-slate-400 hover:text-white'
+            }`}
+          >
+            <Calculator className="w-3.5 h-3.5" />
+            <span>Field Resource Staging</span>
+          </button>
         </div>
       </div>
 
-      {/* SVG Canvas */}
-      <div className="relative w-full overflow-x-auto">
-        <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-auto min-w-[500px]">
-          {/* Horizontal gridlines */}
-          {[0, 0.25, 0.5, 0.75, 1.0].map((frac, i) => {
-            const val = Math.round(yMax * frac);
-            const y = scaleY(val);
-            return (
-              <g key={i}>
-                <line
-                  x1={padding.left}
-                  y1={y}
-                  x2={width - padding.right}
-                  y2={y}
-                  stroke="#1e293b"
-                  strokeWidth="1"
-                />
-                <text
-                  x={padding.left - 8}
-                  y={y + 3}
-                  textAnchor="end"
-                  fontSize="10"
-                  fill="#64748b"
-                  fontFamily="monospace"
-                >
-                  {val}
-                </text>
-              </g>
-            );
-          })}
+      {activeTab === 'fanchart' ? (
+        <>
+          {/* Fan Chart View */}
+          <div className="relative w-full overflow-x-auto">
+            <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-auto min-w-[500px]">
+              {/* Horizontal gridlines */}
+              {[0, 0.25, 0.5, 0.75, 1.0].map((frac, i) => {
+                const val = Math.round(yMax * frac);
+                const y = scaleY(val);
+                return (
+                  <g key={i}>
+                    <line
+                      x1={padding.left}
+                      y1={y}
+                      x2={width - padding.right}
+                      y2={y}
+                      stroke="#1e293b"
+                      strokeWidth="1"
+                    />
+                    <text
+                      x={padding.left - 8}
+                      y={y + 3}
+                      textAnchor="end"
+                      fontSize="10"
+                      fill="#64748b"
+                      fontFamily="monospace"
+                    >
+                      {val}
+                    </text>
+                  </g>
+                );
+              })}
 
-          {/* 95th Percentile Historical Threshold Line */}
-          <line
-            x1={padding.left}
-            y1={thresholdY}
-            x2={width - padding.right}
-            y2={thresholdY}
-            stroke="#f43f5e"
-            strokeWidth="1.5"
-            strokeDasharray="4 3"
-            opacity="0.85"
-          />
-          <text
-            x={width - padding.right + 4}
-            y={thresholdY + 3}
-            fontSize="9"
-            fill="#f43f5e"
-            fontWeight="600"
-          >
-            Q95 ({Math.round(thresholdVal)})
-          </text>
+              {/* 95th Percentile Historical Threshold Line */}
+              <line
+                x1={padding.left}
+                y1={thresholdY}
+                x2={width - padding.right}
+                y2={thresholdY}
+                stroke="#f43f5e"
+                strokeWidth="1.5"
+                strokeDasharray="4 3"
+                opacity="0.85"
+              />
+              <text
+                x={width - padding.right + 4}
+                y={thresholdY + 3}
+                fontSize="9"
+                fill="#f43f5e"
+                fontWeight="700"
+              >
+                Q95 ({Math.round(thresholdVal)})
+              </text>
 
-          {/* Operational Cutoff Line (2-Week Delay Buffer) */}
-          <line
-            x1={originX}
-            y1={padding.top}
-            x2={originX}
-            y2={height - padding.bottom}
-            stroke="#94a3b8"
-            strokeWidth="1"
-            strokeDasharray="2 2"
-          />
-          <text
-            x={originX}
-            y={padding.top - 6}
-            textAnchor="middle"
-            fontSize="8.5"
-            fill="#94a3b8"
-            fontWeight="bold"
-          >
-            Forecast Origin (t)
-          </text>
-
-          {/* 95% Confidence Interval Band */}
-          <path d={band95Path} fill="#0284c7" opacity="0.18" />
-
-          {/* 50% Confidence Interval Band (IQR) */}
-          <path d={band50Path} fill="#0284c7" opacity="0.38" />
-
-          {/* Historical line & dots */}
-          {histCoords.length > 0 && (
-            <>
-              <path
-                d={histLinePath}
-                fill="none"
+              {/* Operational Delay Cutoff Line */}
+              <line
+                x1={originX}
+                y1={padding.top}
+                x2={originX}
+                y2={height - padding.bottom}
                 stroke="#94a3b8"
-                strokeWidth="2"
+                strokeWidth="1"
+                strokeDasharray="2 2"
+              />
+              <text
+                x={originX}
+                y={padding.top - 6}
+                textAnchor="middle"
+                fontSize="8.5"
+                fill="#94a3b8"
+                fontWeight="bold"
+              >
+                Origin (t)
+              </text>
+
+              {/* 95% Prediction Interval Band */}
+              <path d={band95Path} fill="#0284c7" opacity="0.18" />
+
+              {/* 50% Prediction Interval Band (IQR) */}
+              <path d={band50Path} fill="#0284c7" opacity="0.38" />
+
+              {/* Historical line & dots */}
+              {histCoords.length > 0 && (
+                <>
+                  <path
+                    d={histLinePath}
+                    fill="none"
+                    stroke="#94a3b8"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                  />
+                  {histCoords.map((c, i) => (
+                    <circle key={i} cx={c.x} cy={c.y} r="3" fill="#cbd5e1" stroke="#475569" />
+                  ))}
+                </>
+              )}
+
+              {/* Median Trajectory Line */}
+              <path
+                d={medianLinePath}
+                fill="none"
+                stroke="#38bdf8"
+                strokeWidth="2.5"
                 strokeLinecap="round"
               />
-              {histCoords.map((c, i) => (
-                <circle key={i} cx={c.x} cy={c.y} r="3" fill="#cbd5e1" stroke="#475569" />
-              ))}
-            </>
-          )}
 
-          {/* Median Trajectory Line */}
-          <path
-            d={medianLinePath}
-            fill="none"
-            stroke="#38bdf8"
-            strokeWidth="2.5"
-            strokeLinecap="round"
-          />
+              {/* Forecast Point Nodes */}
+              {forecastCoords.map((c, i) => {
+                const isAnomaly = c.data.early_anomaly;
+                return (
+                  <g key={i}>
+                    <line
+                      x1={c.x}
+                      y1={height - padding.bottom}
+                      x2={c.x}
+                      y2={height - padding.bottom + 4}
+                      stroke="#64748b"
+                    />
+                    <text
+                      x={c.x}
+                      y={height - padding.bottom + 16}
+                      textAnchor="middle"
+                      fontSize="9.5"
+                      fill="#94a3b8"
+                      fontWeight="500"
+                    >
+                      {c.label}
+                    </text>
 
-          {/* Forecast Points with Markers and Value Tooltip labels */}
-          {forecastCoords.map((c, i) => {
-            const isAnomaly = c.data.early_anomaly;
-            return (
-              <g key={i}>
-                {/* Vertical tick */}
-                <line
-                  x1={c.x}
-                  y1={height - padding.bottom}
-                  x2={c.x}
-                  y2={height - padding.bottom + 4}
-                  stroke="#64748b"
-                />
-                {/* X Axis Label */}
-                <text
-                  x={c.x}
-                  y={height - padding.bottom + 16}
-                  textAnchor="middle"
-                  fontSize="9.5"
-                  fill="#94a3b8"
-                  fontWeight="500"
-                >
-                  {c.label}
-                </text>
+                    {/* Circle marker */}
+                    <circle
+                      cx={c.x}
+                      cy={c.yMedian}
+                      r={isAnomaly ? '5' : '4'}
+                      fill={isAnomaly ? '#fbbf24' : '#0284c7'}
+                      stroke="#ffffff"
+                      strokeWidth="1.5"
+                    />
 
-                {/* Point dot on median */}
-                <circle
-                  cx={c.x}
-                  cy={c.yMedian}
-                  r={isAnomaly ? '5' : '4'}
-                  fill={isAnomaly ? '#fbbf24' : '#0284c7'}
-                  stroke="#ffffff"
-                  strokeWidth="1.5"
-                />
+                    {/* Median count label */}
+                    <text
+                      x={c.x}
+                      y={c.yMedian - 8}
+                      textAnchor="middle"
+                      fontSize="9.5"
+                      fontWeight="bold"
+                      fill="#ffffff"
+                      className="font-mono"
+                    >
+                      {Math.round(c.data.pred_median)}
+                    </text>
+                  </g>
+                );
+              })}
+            </svg>
+          </div>
 
-                {/* Value text above point */}
-                <text
-                  x={c.x}
-                  y={c.yMedian - 8}
-                  textAnchor="middle"
-                  fontSize="9.5"
-                  fontWeight="bold"
-                  fill="#ffffff"
-                  className="font-mono"
-                >
-                  {Math.round(c.data.pred_median)}
-                </text>
-              </g>
-            );
-          })}
-        </svg>
-      </div>
-
-      {/* 4-Week Horizon Details Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-3 pt-3 border-t border-slate-800">
-        {forecasts.map((f) => (
-          <div
-            key={f.horizon}
-            className="bg-slate-950/70 border border-slate-800/80 rounded-xl p-2.5 flex flex-col justify-between"
-          >
-            <div className="flex items-center justify-between">
-              <span className="text-[11px] font-bold text-slate-300">Week +{f.horizon}</span>
-              <span
-                className={`text-[10px] font-semibold px-1.5 py-0.2 rounded ${
-                  f.risk_tier === 'Extreme'
-                    ? 'bg-rose-500/20 text-rose-400'
-                    : f.risk_tier === 'High'
-                    ? 'bg-orange-500/20 text-orange-400'
-                    : f.risk_tier === 'Moderate'
-                    ? 'bg-amber-500/20 text-amber-400'
-                    : f.risk_tier === 'Insufficient Data'
-                    ? 'bg-slate-700 text-slate-300'
-                    : 'bg-sky-500/20 text-sky-400'
-                }`}
+          {/* 4-Week Horizon Details Cards */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-3 pt-3 border-t border-slate-800">
+            {forecasts.map((f) => (
+              <div
+                key={f.horizon}
+                className="bg-slate-950/70 border border-slate-800/80 rounded-xl p-2.5 flex flex-col justify-between"
               >
-                {f.risk_tier}
-              </span>
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-bold text-slate-300">Week +{f.horizon}</span>
+                  <span
+                    className={`text-[10px] font-semibold px-1.5 py-0.2 rounded ${
+                      f.risk_tier === 'Extreme'
+                        ? 'bg-rose-500/20 text-rose-400'
+                        : f.risk_tier === 'High'
+                        ? 'bg-orange-500/20 text-orange-400'
+                        : f.risk_tier === 'Moderate'
+                        ? 'bg-amber-500/20 text-amber-400'
+                        : f.risk_tier === 'Insufficient Data'
+                        ? 'bg-slate-700 text-slate-300'
+                        : 'bg-sky-500/20 text-sky-400'
+                    }`}
+                  >
+                    {f.risk_tier}
+                  </span>
+                </div>
+
+                <div className="my-1.5">
+                  <div className="text-lg font-black font-mono text-white">
+                    {Math.round(f.pred_median)} <span className="text-xs font-normal text-slate-400">cases</span>
+                  </div>
+                  <div className="text-[10px] text-slate-400 font-mono">
+                    50% IQR: [{Math.round(f.q25)} - {Math.round(f.q75)}]
+                  </div>
+                </div>
+
+                <div className="text-[10px] text-slate-400 flex items-center justify-between pt-1 border-t border-slate-800/60">
+                  <span>P(Exceed Q95):</span>
+                  <span className="font-bold text-amber-300 font-mono">{(f.exceed_prob * 100).toFixed(0)}%</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </>
+      ) : (
+        /* Field Resource Staging Calculator View */
+        <div className="space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
+            <div className="p-3 bg-slate-950/70 border border-slate-800 rounded-xl">
+              <div className="flex items-center gap-2 text-sky-400 mb-1">
+                <Droplets className="w-4 h-4" />
+                <span className="text-[11px] font-bold uppercase tracking-wider">Bti Larvicide Stock</span>
+              </div>
+              <div className="text-xl font-bold font-mono text-white">{btiLiters} L</div>
+              <p className="text-[10px] text-slate-400 mt-1">
+                12.5L solution per projected cluster for water storage & gutter treatment
+              </p>
             </div>
 
-            <div className="my-1.5">
-              <div className="text-lg font-black font-mono text-white">
-                {Math.round(f.pred_median)} <span className="text-xs font-normal text-slate-400">cases</span>
+            <div className="p-3 bg-slate-950/70 border border-slate-800 rounded-xl">
+              <div className="flex items-center gap-2 text-orange-400 mb-1">
+                <Flame className="w-4 h-4" />
+                <span className="text-[11px] font-bold uppercase tracking-wider">Fogging Units</span>
               </div>
-              <div className="text-[10px] text-slate-400 font-mono">
-                50% IQR: [{Math.round(f.q25)} - {Math.round(f.q75)}]
-              </div>
+              <div className="text-xl font-bold font-mono text-white">{foggingCrews} Crews</div>
+              <p className="text-[10px] text-slate-400 mt-1">
+                ULV / thermal spray teams deployed across high transmission blocks
+              </p>
             </div>
 
-            <div className="text-[10px] text-slate-400 flex items-center justify-between pt-1 border-t border-slate-800/60">
-              <span>P(Exceed Q95):</span>
-              <span className="font-bold text-amber-300 font-mono">{(f.exceed_prob * 100).toFixed(0)}%</span>
+            <div className="p-3 bg-slate-950/70 border border-slate-800 rounded-xl">
+              <div className="flex items-center gap-2 text-indigo-400 mb-1">
+                <Users className="w-4 h-4" />
+                <span className="text-[11px] font-bold uppercase tracking-wider">Inspectors (PHIs)</span>
+              </div>
+              <div className="text-xl font-bold font-mono text-white">{phiPersonnel} Officers</div>
+              <p className="text-[10px] text-slate-400 mt-1">
+                House-to-house breeding container inspection and source reduction teams
+              </p>
+            </div>
+
+            <div className="p-3 bg-slate-950/70 border border-slate-800 rounded-xl">
+              <div className="flex items-center gap-2 text-rose-400 mb-1">
+                <ShieldAlert className="w-4 h-4" />
+                <span className="text-[11px] font-bold uppercase tracking-wider">Hospital Alert</span>
+              </div>
+              <div className="text-base font-bold text-white">
+                {maxExceed >= 0.8
+                  ? 'Red Alert (Surge Beds)'
+                  : maxExceed >= 0.5
+                  ? 'Amber Alert (Pre-triage)'
+                  : 'Green (Normal)'}
+              </div>
+              <p className="text-[10px] text-slate-400 mt-1">
+                Inpatient dengue hemorrhagic fever (DHF) ward readiness protocol
+              </p>
             </div>
           </div>
-        ))}
-      </div>
+
+          {/* Operational Checklist */}
+          <div className="p-3.5 bg-slate-950/80 border border-slate-800 rounded-xl text-xs space-y-2">
+            <h5 className="font-bold text-white flex items-center gap-2">
+              <CheckCircle className="w-4 h-4 text-emerald-400" />
+              <span>Recommended MOH Action Checklist for {districtName} (Next 14–28 Days)</span>
+            </h5>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-slate-300">
+              <div className="flex items-start gap-2">
+                <span className="text-sky-400 font-bold">•</span>
+                <span>Stage biological larvicide (Bti) in MOH stores 2 weeks before monsoon peak.</span>
+              </div>
+              <div className="flex items-start gap-2">
+                <span className="text-sky-400 font-bold">•</span>
+                <span>Prioritize non-piped water storage households (Census CPH-2024 target areas).</span>
+              </div>
+              <div className="flex items-start gap-2">
+                <span className="text-sky-400 font-bold">•</span>
+                <span>Execute queen-contiguity border surveillance with adjacent districts.</span>
+              </div>
+              <div className="flex items-start gap-2">
+                <span className="text-sky-400 font-bold">•</span>
+                <span>Distribute community alerts through Grama Niladhari divisions.</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

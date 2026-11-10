@@ -15,11 +15,10 @@ import {
   Flame,
   ShieldCheck,
   CheckCircle2,
-  ExternalLink,
-  BookOpen,
-  Video,
   Award,
-  Sparkles
+  Video,
+  ExternalLink,
+  ChevronRight
 } from 'lucide-react';
 
 import forecastData from './data/forecast_data.json';
@@ -34,7 +33,7 @@ export default function App() {
   const [selectedDistrict, setSelectedDistrict] = useState<string>('Colombo');
   const [activeScenarioKey, setActiveScenarioKey] = useState<string>('latest_2024');
   const [showHowToRead, setShowHowToRead] = useState<boolean>(false);
-  const [activeNavTab, setActiveNavTab] = useState<'forecaster' | 'summary' | 'tech_report' | 'video_script' | 'gh_pages'>('forecaster');
+  const [activeView, setActiveView] = useState<'dashboard' | 'documentation'>('dashboard');
 
   // Load current active scenario
   const currentScenario = useMemo(() => {
@@ -140,160 +139,138 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans selection:bg-sky-500 selection:text-white">
-      {/* 1. Competition Banner & Non-Clinical Disclaimer */}
-      <div className="bg-gradient-to-r from-emerald-950 via-slate-900 to-emerald-950 border-b border-emerald-800/40 px-4 py-1.5 text-center text-xs text-emerald-300 flex flex-wrap items-center justify-center gap-2">
-        <span className="flex items-center gap-1 font-bold text-white bg-emerald-900/60 px-2 py-0.5 rounded text-[11px] border border-emerald-700/60">
-          <Award className="w-3.5 h-3.5 text-emerald-400" />
-          <span>ModelX 2.0 (Phase 2: Implementation)</span>
-        </span>
-        <span className="text-slate-400 hidden sm:inline">•</span>
+      {/* 1. Permanent Non-Clinical Disclaimer Banner */}
+      <div className="bg-gradient-to-r from-amber-950 via-slate-900 to-amber-950 border-b border-amber-800/40 px-4 py-2 text-center text-xs text-amber-300 flex flex-wrap items-center justify-center gap-2">
+        <AlertTriangle className="w-3.5 h-3.5 text-amber-400 flex-shrink-0" />
         <span>
-          Team <strong>Silent Node</strong> (IEEE CIS Student Chapter, IIT)
-        </span>
-        <span className="text-slate-400 hidden sm:inline">•</span>
-        <span className="text-slate-300">
-          <strong>Notice</strong>: Administrative planning decision-support framework for vector-control teams, <strong>NOT a clinical diagnostic tool</strong>.
+          <strong>Operational Planning Notice</strong>: Akarsh is a planning decision-support tool for district
+          vector-control officers & Medical Officers of Health (MOH), <strong>NOT a clinical diagnostic tool</strong>.
         </span>
       </div>
 
-      {/* 2. Top Header with Akarsh Branding and Navigation */}
+      {/* 2. Top Header & Competition Navigation Bar */}
       <header className="bg-slate-900/90 border-b border-slate-800 sticky top-0 z-40 backdrop-blur-md">
         <div className="max-w-7xl mx-auto px-4 py-3 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           {/* Brand & System Identity */}
           <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-2xl bg-gradient-to-br from-emerald-500 via-teal-600 to-sky-600 shadow-xl shadow-emerald-500/20 text-white flex-shrink-0">
-              <Activity className="w-6 h-6" />
+            <div className="p-2 rounded-xl bg-gradient-to-br from-sky-500 to-indigo-600 shadow-lg shadow-sky-500/20 text-white">
+              <Activity className="w-5 h-5" />
             </div>
             <div>
-              <div className="flex items-center gap-2">
-                <h1 className="text-xl font-black tracking-tight text-white flex items-center gap-1.5">
-                  <span>AKARSH</span>
-                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                </h1>
+              <div className="flex flex-wrap items-center gap-2">
+                <h1 className="text-lg font-black tracking-tight text-white">AKARSH</h1>
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 font-bold flex items-center gap-1">
+                  <Award className="w-3 h-3 text-amber-400" />
+                  <span>ModelX 2.0</span>
+                </span>
                 <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-800 border border-slate-700 text-sky-400 font-mono font-bold">
-                  v1.0.0
+                  Team Silent Node
                 </span>
                 <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-400 border border-emerald-800 font-mono">
-                  26 Health Units
-                </span>
-                <span className="text-[10px] px-2 py-0.5 rounded-full bg-cyan-950 text-cyan-300 border border-cyan-800 font-mono font-semibold hidden md:inline">
-                  GitHub Pages Ready
+                  26 Units
                 </span>
               </div>
               <p className="text-xs text-slate-400">
-                4-Week District Dengue Risk Forecaster & Vector-Control Decision Support System
+                4-Week Ahead Probabilistic Dengue Risk Forecaster & Vector Resource Allocation Engine
               </p>
             </div>
           </div>
 
-          {/* Navigation Tabs */}
-          <div className="flex flex-wrap items-center gap-1.5 bg-slate-950/80 p-1.5 rounded-2xl border border-slate-800 text-xs font-semibold">
-            <button
-              onClick={() => setActiveNavTab('forecaster')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl transition-all ${
-                activeNavTab === 'forecaster'
-                  ? 'bg-sky-600 text-white shadow-md shadow-sky-600/30'
-                  : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              <Activity className="w-3.5 h-3.5" />
-              <span>Forecaster</span>
-            </button>
-
-            <button
-              onClick={() => setActiveNavTab('summary')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl transition-all ${
-                activeNavTab === 'summary'
-                  ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/30'
-                  : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              <FileText className="w-3.5 h-3.5" />
-              <span>2-Page Summary</span>
-            </button>
-
-            <button
-              onClick={() => setActiveNavTab('tech_report')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl transition-all ${
-                activeNavTab === 'tech_report'
-                  ? 'bg-sky-600 text-white shadow-md shadow-sky-600/30'
-                  : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              <BookOpen className="w-3.5 h-3.5" />
-              <span>Tech Report</span>
-            </button>
-
-            <button
-              onClick={() => setActiveNavTab('video_script')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl transition-all ${
-                activeNavTab === 'video_script'
-                  ? 'bg-purple-600 text-white shadow-md shadow-purple-600/30'
-                  : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              <Video className="w-3.5 h-3.5" />
-              <span>3-Min Video Script</span>
-            </button>
-
-            <button
-              onClick={() => setActiveNavTab('gh_pages')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl transition-all ${
-                activeNavTab === 'gh_pages'
-                  ? 'bg-cyan-600 text-white shadow-md shadow-cyan-600/30'
-                  : 'text-slate-400 hover:text-white'
-              }`}
+          {/* Controls, Metadata Badges & Links */}
+          <div className="flex flex-wrap items-center gap-2 text-xs">
+            {/* GitHub Repo Link */}
+            <a
+              href="https://github.com/Kravenfr/Model-X_Silent_Node"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-950 hover:bg-slate-800 border border-slate-700 text-sky-400 font-semibold transition-all"
             >
               <ExternalLink className="w-3.5 h-3.5" />
-              <span>GH Pages Link</span>
-            </button>
+              <span>GitHub Repo</span>
+            </a>
 
+            <div className="bg-slate-950/80 border border-slate-800 rounded-xl px-2.5 py-1.5 flex items-center gap-1.5">
+              <Calendar className="w-3.5 h-3.5 text-sky-400" />
+              <div>
+                <span className="text-slate-500 text-[9px] uppercase block leading-none">Origin</span>
+                <span className="font-mono font-bold text-white text-[11px]">{metadata.as_of_origin}</span>
+              </div>
+            </div>
+
+            <div className="bg-slate-950/80 border border-slate-800 rounded-xl px-2.5 py-1.5 flex items-center gap-1.5">
+              <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+              <div>
+                <span className="text-slate-500 text-[9px] uppercase block leading-none">Cutoff</span>
+                <span className="font-mono font-bold text-emerald-400 text-[11px]">{metadata.data_cutoff_week}</span>
+              </div>
+            </div>
+
+            {/* View Switcher: Dashboard vs Documentation */}
+            <div className="flex items-center bg-slate-950 border border-slate-800 rounded-xl p-1">
+              <button
+                onClick={() => setActiveView('dashboard')}
+                className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all ${
+                  activeView === 'dashboard'
+                    ? 'bg-sky-600 text-white shadow-sm'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                Dashboard
+              </button>
+              <button
+                onClick={() => setActiveView('documentation')}
+                className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all ${
+                  activeView === 'documentation'
+                    ? 'bg-sky-600 text-white shadow-sm'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                Docs & Evaluation
+              </button>
+            </div>
+
+            {/* Help Button */}
             <button
               onClick={() => setShowHowToRead(true)}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-slate-400 hover:text-amber-300 hover:bg-slate-800 transition-all ml-1"
-              title="How to Read This"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-semibold transition-all cursor-pointer"
             >
-              <HelpCircle className="w-4 h-4 text-amber-400" />
+              <HelpCircle className="w-3.5 h-3.5 text-sky-400" />
+              <span>How to Read</span>
             </button>
           </div>
         </div>
 
-        {/* Origin / Simulation Scenario Switcher Strip */}
+        {/* Scenario Switcher Bar */}
         <div className="bg-slate-950/90 border-t border-slate-800/80 px-4 py-2">
           <div className="max-w-7xl mx-auto flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
-            <div className="flex items-center gap-2">
-              <span className="text-slate-400 font-semibold uppercase text-[10.5px] tracking-wider flex items-center gap-1">
-                <RefreshCw className="w-3 h-3 text-emerald-400" />
-                <span>Simulation Scenario:</span>
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-slate-400 font-semibold uppercase text-[11px] tracking-wider flex items-center gap-1">
+                <RefreshCw className="w-3 h-3 text-sky-400" />
+                <span>Simulation / Historical Replay:</span>
               </span>
               <div className="flex flex-wrap items-center gap-1.5">
                 {Object.entries(forecastData.scenarios).map(([key, sc]: [string, any]) => (
                   <button
                     key={key}
-                    onClick={() => {
-                      setActiveScenarioKey(key);
-                      if (activeNavTab !== 'forecaster') setActiveNavTab('forecaster');
-                    }}
+                    onClick={() => setActiveScenarioKey(key)}
                     className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-all ${
                       activeScenarioKey === key
-                        ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-400/50 shadow-sm'
+                        ? 'bg-sky-500/20 text-sky-300 border border-sky-400/50 shadow-sm'
                         : 'bg-slate-900 text-slate-400 hover:text-slate-200 border border-slate-800'
                     }`}
                   >
                     {key === 'latest_2024'
                       ? 'Live Operational (2024-W20)'
                       : key === 'replay_2017_outbreak'
-                      ? 'May 1, 2017 Pre-Peak Replay (--as-of)'
-                      : 'Data Interruption Fail-Safe Test'}
+                      ? 'Replay: May 1, 2017 (--as-of 2017-05-01)'
+                      : 'Data Interruption Test (Kalmunai)'}
                   </button>
                 ))}
               </div>
             </div>
-
-            <div className="flex items-center gap-3 text-[11px] font-mono text-slate-400">
-              <span>Cutoff: <strong className="text-emerald-400 font-bold">{metadata.data_cutoff_week}</strong></span>
-              <span>Origin: <strong className="text-white font-bold">{metadata.as_of_origin}</strong></span>
-            </div>
+            <p className="text-[11px] text-slate-400 italic">
+              {currentScenario.description}
+            </p>
           </div>
         </div>
       </header>
@@ -317,18 +294,18 @@ export default function App() {
         </div>
       )}
 
-      {/* Main Content Area */}
+      {/* Main Body Content */}
       <main className="flex-1 max-w-7xl w-full mx-auto p-4 md:p-6 space-y-6">
-        {activeNavTab !== 'forecaster' ? (
-          <DocumentationView onBackToDashboard={() => setActiveNavTab('forecaster')} />
+        {activeView === 'documentation' ? (
+          <DocumentationView />
         ) : (
           <>
             {/* Horizon Selector and Summary Metric Cards */}
             <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-4 shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
-              {/* Horizon Tabs (1 to 4 weeks forward) */}
+              {/* Horizon Tabs (1 to 4 weeks ahead) */}
               <div className="flex items-center gap-2">
                 <span className="text-xs font-bold text-slate-400 uppercase tracking-wider mr-1 flex items-center gap-1.5">
-                  <Layers className="w-4 h-4 text-emerald-400" />
+                  <Layers className="w-4 h-4 text-sky-400" />
                   <span>Horizon:</span>
                 </span>
                 {[1, 2, 3, 4].map((h) => {
@@ -338,9 +315,9 @@ export default function App() {
                     <button
                       key={h}
                       onClick={() => setSelectedHorizon(h)}
-                      className={`flex flex-col items-center px-4 py-2 rounded-xl border text-xs font-semibold transition-all cursor-pointer ${
+                      className={`flex flex-col items-center px-4 py-2 rounded-xl border text-xs font-semibold transition-all ${
                         isSelected
-                          ? 'bg-gradient-to-b from-sky-600 to-sky-700 border-sky-400 text-white shadow-lg shadow-sky-600/30'
+                          ? 'bg-sky-600 border-sky-400 text-white shadow-lg shadow-sky-600/30'
                           : 'bg-slate-950/60 border-slate-800 text-slate-400 hover:text-white hover:border-slate-700'
                       }`}
                     >
@@ -391,7 +368,7 @@ export default function App() {
               </div>
             </div>
 
-            {/* Main Interactive Grid: Left Choropleth Map and Right Allocation Matrix */}
+            {/* Top Grid: Left Choropleth Map (5/12) and Right Allocation Matrix (7/12) */}
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
               {/* Left Column: Interactive Choropleth Map */}
               <div className="lg:col-span-5">
@@ -428,7 +405,7 @@ export default function App() {
                 <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-4 shadow-xl">
                   <div className="flex flex-wrap items-center justify-between gap-4 text-xs">
                     <div>
-                      <span className="text-slate-400 block text-[10px] uppercase">Jurisdiction & Province</span>
+                      <span className="text-slate-400 block text-[10px] uppercase">Province & Jurisdiction</span>
                       <span className="font-bold text-white text-sm">
                         {selectedDistrictForecasts[0].province} Province
                         {selectedDistrict === 'Kalmunai' && ' (RDHS Health Zone)'}
@@ -436,14 +413,14 @@ export default function App() {
                     </div>
 
                     <div>
-                      <span className="text-slate-400 block text-[10px] uppercase">Population (2023 COD-PS)</span>
+                      <span className="text-slate-400 block text-[10px] uppercase">Estimated 2023 Population</span>
                       <span className="font-mono font-bold text-white text-sm">
                         {((selectedDistrictForecasts[0] as any).population || 500000).toLocaleString()}
                       </span>
                     </div>
 
                     <div>
-                      <span className="text-slate-400 block text-[10px] uppercase">CPH-2024 Piped Water</span>
+                      <span className="text-slate-400 block text-[10px] uppercase">Piped-Water Access Share</span>
                       <span className="font-mono font-bold text-sky-400 text-sm">
                         {(selectedDistrictForecasts[0] as any).piped_water_pct || 35.0}%
                       </span>
@@ -457,8 +434,8 @@ export default function App() {
                     </div>
 
                     <div>
-                      <span className="text-slate-400 block text-[10px] uppercase">Selected Model</span>
-                      <span className="font-semibold text-emerald-400 text-sm">
+                      <span className="text-slate-400 block text-[10px] uppercase">Model Formulation</span>
+                      <span className="font-semibold text-slate-300 text-sm">
                         Ensemble (GAM + Seasonal-AR)
                       </span>
                     </div>
@@ -471,21 +448,27 @@ export default function App() {
       </main>
 
       {/* Footer */}
-      <footer className="bg-slate-950 border-t border-slate-800/80 py-5 px-4 mt-8 text-xs text-slate-500">
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-3">
+      <footer className="bg-slate-950 border-t border-slate-800/80 py-4 px-4 mt-8 text-xs text-slate-500">
+        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
           <div className="flex items-center gap-2">
-            <span className="font-bold text-white">AKARSH</span>
+            <span className="font-bold text-slate-300">AKARSH Dengue Forecaster</span>
             <span>•</span>
-            <span className="text-emerald-400 font-semibold">ModelX 2.0 Competition</span>
+            <span>ModelX 2.0 Competition (Phase 2)</span>
             <span>•</span>
-            <span>Team Silent Node • IEEE CIS Student Chapter, IIT</span>
+            <span>Team Silent Node</span>
           </div>
           <div className="flex items-center gap-3">
-            <span>26,311 Records (2006–2026)</span>
+            <a
+              href="https://github.com/Kravenfr/Model-X_Silent_Node"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-sky-400 hover:underline flex items-center gap-1"
+            >
+              <span>GitHub Repo</span>
+              <ExternalLink className="w-3 h-3" />
+            </a>
             <span>•</span>
-            <span>Open-Meteo ERA5</span>
-            <span>•</span>
-            <span>Zero Data Leakage Protocol</span>
+            <span>Open Access Data (denguedatahub • Open-Meteo • CPH-2024)</span>
           </div>
         </div>
       </footer>
